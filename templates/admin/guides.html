@@ -1,0 +1,31 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between mb-4">
+    <h3>📝 心理指南库</h3>
+    <a href="{{ url_for('admin.add_guide') }}" class="btn btn-primary btn-sm">+ 新增指南</a>
+</div>
+
+<table class="table table-hover bg-white rounded shadow-sm">
+    <thead>
+        <tr>
+            <th>标题</th>
+            <th>分类</th>
+            <th>更新时间</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for guide in guides %}
+        <tr>
+            <td>{{ guide.title }}</td>
+            <td>{{ guide.category.name }}</td>
+            <td class="small">{{ guide.updated_at.strftime('%Y-%m-%d') }}</td>
+            <td>
+                <a href="{{ url_for('admin.edit_guide', guide_id=guide.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,13 +1,16 @@
-# GitHub Codespaces ♥️ Flask
+# 如何在线上终端运行？
 
-Welcome to your shiny new Codespace running Flask! We've got everything fired up and running for you to explore Flask.
+1、提交代码：在 Codespaces 里把这两个新文件 Commit & Push 到 GitHub。
 
-You've got a blank canvas to work on from a git perspective as well. There's a single initial commit with the what you're seeing right now - where you go from here is up to you!
+2、等待部署：Zeabur 会自动拉取新代码并部署。
 
-Everything you do here is contained within this one codespace. There is no repository on GitHub yet. If and when you’re ready you can click "Publish Branch" and we’ll create your repository and push up your project. If you were just exploring then and have no further need for this code then you can simply delete your codespace and it's gone forever.
+3、进入终端：打开 Zeabur 控制台的 Terminal。
 
-To run this application:
+4、执行指令：
 
-```
-flask --debug run
+```bash
+# 赋予执行权限
+chmod +x init_online.sh
+# 运行初始化
+./init_online.sh
 ```

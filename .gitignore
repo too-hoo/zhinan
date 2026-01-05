@@ -1,1 +1,20 @@
+# 1. 之前已有的 Python 缓存和虚拟环境
 __pycache__/
+.venv_zhinan/
+*.pyc
+
+# 2. 数据库文件 (极其重要！防止本地测试数据覆盖生产环境)
+instance/
+*.db
+
+# 3. 用户上传的图片 (既然我们要用 Zeabur Volume 挂载，就不能进 Git)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# 4. 环境变量文件 (未来如果你把 API Key 挪出来，会用到这个文件)
+.env
+
+# 5. 编辑器和系统临时文件
+.vscode/
+.DS_Store
+Thumbs.db

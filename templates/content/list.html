@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <form action="{{ url_for('content.list_guides') }}" method="GET" class="input-group">
+                <input type="text" name="q" class="form-control form-control-lg border-0 shadow-sm px-4" 
+                       placeholder="搜索感兴趣的心理话题..." value="{{ search_q }}" style="border-radius: 30px 0 0 30px;">
+                <button class="btn btn-primary px-4" type="submit" style="border-radius: 0 30px 30px 0;">搜索</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; background: #fff;">
+                <div class="mb-4">
+                    <span class="text-secondary fw-bold me-3">分类浏览</span>
+                    <div class="d-inline-flex flex-wrap gap-2">
+                        <a href="{{ url_for('content.list_guides') }}" 
+                           class="badge rounded-pill p-2 px-3 text-decoration-none {% if not current_cat %}bg-primary text-white{% else %}bg-light text-dark{% endif %}">全部</a>
+                        {% for cat in categories %}
+                        <a href="{{ url_for('content.list_guides', category_id=cat.id) }}" 
+                           class="badge rounded-pill p-2 px-3 text-decoration-none {% if current_cat == cat.id %}bg-primary text-white{% else %}bg-light text-dark{% endif %}">
+                            {{ cat.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <span class="text-secondary fw-bold me-3">热门标签</span>
+                    <div class="d-inline-flex flex-wrap gap-2">
+                        {% for tag in tags %}
+                        <a href="{{ url_for('content.list_guides', tag_id=tag.id) }}" 
+                           class="text-decoration-none small p-1 px-2 rounded {% if current_tag == tag.id %}bg-dark text-white{% else %}text-muted bg-light{% endif %}">
+                            #{{ tag.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="row g-4">
+                {% for guide in guides %}
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm overflow-hidden guide-card-horizontal">
+                        <div class="row g-0 align-items-center">
+                            <div class="col-md-4">
+                                <img src="{{ guide.cover_image_url or 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=400' }}" 
+                                     class="img-fluid rounded-start h-100" style="object-fit: cover; min-height: 200px;">
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body p-4">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-primary small fw-bold">{{ guide.category.name }}</span>
+                                        <div class="text-muted small">
+                                            <span>👁️ {{ guide.view_count }}</span>
+                                            <span class="ms-2">❤️ {{ guide.like_count }}</span>
+                                        </div>
+                                    </div>
+                                    <h4 class="card-title fw-bold mb-3">{{ guide.title }}</h4>
+                                    <p class="card-text text-muted mb-4">{{ guide.summary }}</p>
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="tags-container">
+                                            {% for tag in guide.tags %}
+                                            <span class="badge bg-light text-muted fw-normal me-1">#{{ tag.name }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        <a href="{{ url_for('content.show_guide', guide_id=guide.id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">阅读原文</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .guide-card-horizontal {
+        transition: all 0.3s ease;
+        border-radius: 15px;
+    }
+    .guide-card-horizontal:hover {
+        transform: scale(1.01);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    }
+    .badge { transition: all 0.2s; }
+</style>
+
+{% if not guides %}
+<div class="text-center py-5">
+    <h3 class="text-muted">🔍 没找到相关指南，要不换个关键词？</h3>
+</div>
+{% endif %}
+{% endblock %}

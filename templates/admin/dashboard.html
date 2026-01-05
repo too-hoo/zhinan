@@ -1,0 +1,26 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2 class="fw-bold">📊 数据概览</h2>
+        <p class="text-muted">欢迎回来，管理员。这是系统目前的运行概况。</p>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm p-4 bg-white">
+            <h6 class="text-secondary">总用户数</h6>
+            <h2 class="display-6 fw-bold">{{ user_count }}</h2>
+            <a href="{{ url_for('admin.manage_users') }}" class="small text-decoration-none mt-2">查看详情 →</a>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm p-4 bg-white">
+            <h6 class="text-secondary">心理指南总数</h6>
+            <h2 class="display-6 fw-bold text-primary">{{ guide_count }}</h2>
+            <a href="{{ url_for('admin.manage_guides') }}" class="small text-decoration-none mt-2">管理内容 →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

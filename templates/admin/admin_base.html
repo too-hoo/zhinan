@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row min-vh-100 mt-n4">
+    <div class="col-md-2 bg-dark text-white p-4 shadow">
+        <h5 class="mb-4 text-primary">管理后台</h5>
+        <ul class="nav flex-column gap-2">
+            <li class="nav-item">
+                <a class="nav-link text-white py-2 rounded {% if request.endpoint == 'admin.admin_index' %}bg-primary{% endif %}" 
+                   href="{{ url_for('admin.admin_index') }}">📊 数据概览</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-white py-2 rounded {% if request.endpoint == 'admin.manage_users' %}bg-primary{% endif %}" 
+                   href="{{ url_for('admin.manage_users') }}">👥 用户 & 激活码</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-white py-2 rounded {% if request.endpoint == 'admin.manage_guides' %}bg-primary{% endif %}" 
+                   href="{{ url_for('admin.manage_guides') }}">📝 心理指南管理</a>
+            </li>
+        </ul>
+        <hr>
+        <a href="/" class="btn btn-sm btn-outline-light w-100">返回前台</a>
+    </div>
+
+    <div class="col-md-10 p-4 bg-light">
+        {% block admin_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

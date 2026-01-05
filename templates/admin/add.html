@@ -1,0 +1,103 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="container py-2">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>🚀 发布新心理指南</h3>
+        <a href="{{ url_for('admin.manage_guides') }}" class="btn btn-outline-secondary btn-sm">返回列表</a>
+    </div>
+
+    <form method="POST" class="card p-4 border-0 shadow-sm">
+        <div class="row">
+            <div class="col-md-4 border-end">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-uppercase">封面图 URL</label>
+                    <input type="text" name="cover_image_url" class="form-control" placeholder="粘贴精美图片链接...">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-uppercase">所属分类</label>
+                    <select name="category_id" class="form-select">
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-uppercase">选择标签</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for tag in tags %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="tags" value="{{ tag.id }}" id="tag{{ tag.id }}">
+                            <label class="form-check-label small" for="tag{{ tag.id }}">{{ tag.name }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        指南标题
+                        <button type="button" id="ai-btn" class="btn btn-sm btn-outline-purple" style="border-color: #6f42c1; color: #6f42c1;">
+                            ✨ AI 一键润色/生成
+                        </button>
+                    </label>
+                    <input type="text" name="title" id="title-input" class="form-control form-control-lg" value="{{ guide.title if guide else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">内容摘要</label>
+                    <textarea name="summary" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">详细内容 (Markdown)</label>
+                    <textarea name="content" class="form-control font-monospace" rows="12"></textarea>
+                </div>
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary px-5 rounded-pill">发布内容</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+document.getElementById('ai-btn').onclick = function() {
+    const title = document.getElementById('title-input').value;
+    if (!title) {
+        alert("请先输入一个标题，让 AI 知道写什么内容。");
+        return;
+    }
+
+    // 视觉反馈：进入加载状态
+    const originalText = this.innerHTML;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI 正在思考中...';
+    this.disabled = true;
+
+    fetch("{{ url_for('admin.ai_polish') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // 自动填充摘要和正文
+            document.querySelector('textarea[name="summary"]').value = data.summary;
+            document.querySelector('textarea[name="content"]').value = data.content;
+            
+            // 如果你使用了 Markdown 预览，可以触发预览更新
+            alert("✨ AI 创作完成！已自动填入摘要和正文。");
+        } else {
+            alert("AI 暂时掉线了: " + data.message);
+        }
+    })
+    .finally(() => {
+        this.innerHTML = originalText;
+        this.disabled = false;
+    });
+};
+</script>
+
+<style>
+    .btn-outline-purple:hover { background-color: #6f42c1; color: white; }
+</style>
+{% endblock %}

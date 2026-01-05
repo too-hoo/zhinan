@@ -1,0 +1,121 @@
+{% extends "admin/admin_base.html" %}  {% block admin_content %}
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-white py-3">
+        <h4 class="mb-0">👥 用户权限管理后台</h4>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>当前状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td><strong>{{ user.username }}</strong></td>
+                    <td>
+                        {% if user.is_paid %}
+                        <span class="badge bg-success">付费用户</span>
+                        {% else %}
+                        <span class="badge bg-secondary">普通用户</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-approve {% if user.is_paid %}btn-outline-danger{% else %}btn-primary{% endif %}" 
+                                data-user-id="{{ user.id }}">
+                            <span class="btn-text">{% if user.is_paid %}取消授权{% else %}一键开通权限{% endif %}</span>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+// 异步处理权限切换
+document.querySelectorAll('.btn-approve').forEach(btn => {
+    btn.onclick = function() {
+        const userId = this.getAttribute('data-user-id');
+        const textSpan = this.querySelector('.btn-text');
+        const badge = this.closest('tr').querySelector('.badge'); // 找到同一行的状态标签
+
+        fetch(`/admin/approve/${userId}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                // 1. 更新按钮样式和文字
+                if(data.is_paid) {
+                    this.classList.replace('btn-primary', 'btn-outline-danger');
+                    textSpan.innerText = "取消授权";
+                    badge.className = "badge bg-success";
+                    badge.innerText = "付费用户";
+                } else {
+                    this.classList.replace('btn-outline-danger', 'btn-primary');
+                    textSpan.innerText = "一键开通权限";
+                    badge.className = "badge bg-secondary";
+                    badge.innerText = "普通用户";
+                }
+            }
+        });
+    };
+});
+</script>
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">🔑 激活码管理</h5>
+        <div class="btn-group">
+            <button class="btn btn-outline-success btn-sm me-2" onclick="copyUnusedCodes()">
+                📋 复制所有可用码
+            </button>
+            <form action="{{ url_for('admin.generate_codes') }}" method="POST">
+                <button class="btn btn-primary btn-sm">+ 生成10个新码</button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row row-cols-2 row-cols-md-5 g-2">
+            {% for code in codes %}
+            <div class="col">
+                <div class="p-2 border rounded text-center {% if code.is_used %}bg-light text-muted{% else %}bg-white unused-code{% endif %}">
+                    <small class="d-block fw-bold">{{ code.code }}</small>
+                    <span class="badge {% if code.is_used %}bg-secondary{% else %}bg-success{% endif %}">
+                        {{ '已用' if code.is_used else '可用' }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<script>
+function copyUnusedCodes() {
+    // 1. 获取所有标记为“可用”的激活码元素
+    const codeElements = document.querySelectorAll('.unused-code fw-bold, .unused-code .fw-bold');
+    // 如果上面的选择器不生效，可以直接选取带有该 class 内部的文本
+    const unusedCodes = Array.from(document.querySelectorAll('.unused-code'))
+                             .map(el => el.querySelector('small').innerText);
+
+    if (unusedCodes.length === 0) {
+        alert("库中已没有可用的激活码！");
+        return;
+    }
+
+    // 2. 将激活码合并成多行文本（每行一个码）
+    const textToCopy = unusedCodes.join('\n');
+
+    // 3. 调用系统剪贴板 API
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        alert("成功复制 " + unusedCodes.length + " 个激活码！可以去小红书粘贴了。");
+    }).catch(err => {
+        console.error('复制失败: ', err);
+        alert("复制失败，请手动选择文字复制。");
+    });
+}
+</script>
+{% endblock %}
