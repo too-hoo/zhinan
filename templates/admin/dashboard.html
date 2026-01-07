@@ -11,7 +11,7 @@
         <div class="card border-0 shadow-sm p-4 bg-white">
             <h6 class="text-secondary">总用户数</h6>
             <h2 class="display-6 fw-bold">{{ user_count }}</h2>
-            <a href="{{ url_for('admin.manage_users') }}" class="small text-decoration-none mt-2">查看详情 →</a>
+            <a href="{{ url_for('admin.admin_users.list_users') }}" class="small text-decoration-none mt-2">查看详情 →</a>
         </div>
     </div>
     
@@ -19,7 +19,7 @@
         <div class="card border-0 shadow-sm p-4 bg-white">
             <h6 class="text-secondary">心理指南总数</h6>
             <h2 class="display-6 fw-bold text-primary">{{ guide_count }}</h2>
-            <a href="{{ url_for('admin.manage_guides') }}" class="small text-decoration-none mt-2">管理内容 →</a>
+            <a href="{{ url_for('admin.admin_guides.manage_guides') }}" class="small text-decoration-none mt-2">管理内容 →</a>
         </div>
     </div>
 </div>

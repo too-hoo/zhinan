@@ -1,0 +1,66 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0">🔑 激活码管理中心</h5>
+        <div class="btn-group">
+            <button class="btn btn-outline-success btn-sm me-2" onclick="copyAllAvailable()">📋 复制所有可用码</button>
+            <form action="{{ url_for('admin.admin_codes.generate_codes') }}" method="POST">
+                <button type="submit" class="btn btn-primary btn-sm">+ 生成10个新码</button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row row-cols-2 row-cols-md-5 g-3 mb-4">
+            {% for code in codes %}
+            <div class="col">
+                <div class="p-2 border rounded text-center {% if code.is_used %}bg-light text-muted{% else %}bg-white shadow-sm{% endif %}">
+                    <small class="d-block fw-bold">{{ code.code }}</small>
+                    <span class="badge {% if code.is_used %}bg-secondary{% else %}bg-success{% endif %}" style="font-size: 0.6rem;">
+                        {{ '已用' if code.is_used else '可用' }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center pagination-sm">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.admin_codes.list_codes', page=pagination.prev_num) if pagination.has_prev else '#' }}">上一页</a>
+                </li>
+                {% for page_num in pagination.iter_pages() %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin.admin_codes.list_codes', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.admin_codes.list_codes', page=pagination.next_num) if pagination.has_next else '#' }}">下一页</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<script>
+function copyAllAvailable() {
+    // 调用后端接口获取所有未使用的码，这样即使不在当前页也能全部复制
+    fetch("{{ url_for('admin.admin_codes.get_available_codes') }}")
+    .then(res => res.json())
+    .then(data => {
+        if(data.success && data.data) {
+            navigator.clipboard.writeText(data.data).then(() => {
+                alert("已成功复制所有可用激活码！");
+            });
+        } else {
+            alert("目前库中没有可用的激活码。");
+        }
+    });
+}
+</script>
+{% endblock %}

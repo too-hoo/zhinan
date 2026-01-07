@@ -1,0 +1,97 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">📁 分类管理</h5>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">+ 新增分类</button>
+            </div>
+            <div class="card-body">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>分类名称</th><th>操作</th></tr></thead>
+                    <tbody>
+                        {% for cat in categories %}
+                        <tr>
+                            <td>{{ cat.name }}</td>
+                            <td>
+                                <form action="{{ url_for('admin.admin_taxonomy.delete_category', id=cat.id) }}" method="POST" style="display:inline;">
+                                    <button class="btn btn-link text-danger p-0" onclick="return confirm('确定删除此分类吗？')">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🏷️ 标签管理</h5>
+                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addTagModal">+ 新增标签</button>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    {% for tag in tags %}
+                    <div class="badge bg-light text-dark border p-2 d-flex align-items-center">
+                        #{{ tag.name }}
+                        <form action="{{ url_for('admin.admin_taxonomy.delete_tag', id=tag.id) }}" method="POST" class="ms-2">
+                            <button class="btn-close" style="font-size: 0.5rem;" onclick="return confirm('删除标签？')"></button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.admin_taxonomy.add_category') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-header">新增分类</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">分类名称</label>
+                        <input type="text" name="name" class="form-control" placeholder="例如：心理科普" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">立即创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addTagModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.admin_taxonomy.add_tag') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增标签</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">标签名称</label>
+                        <input type="text" name="name" class="form-control" placeholder="例如：舒压" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">确认添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="container-fluid py-4">
+    <div class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold mb-0">📂 阿里云 OSS 素材中心</h3>
+            <div class="text-muted small">直接管理视频、音频、图片及文档素材</div>
+        </div>
+
+        <div id="drop-zone" class="card bg-light border-dashed p-5 mb-4 text-center" 
+             style="border: 2px dashed #6f42c1; transition: all 0.3s ease; cursor: pointer;">
+            <input type="file" id="quick-upload-input" class="d-none" onchange="handleFileUpload(this.files[0])">
+            <div id="upload-icon" class="mb-3" style="font-size: 3rem;">✨</div>
+            <h4 class="fw-bold">点击或将素材拖拽至此处</h4>
+            <div id="upload-status" class="text-muted">支持视频、音频及各类文档</div>
+            <button class="btn btn-purple rounded-pill px-4 mt-3" 
+                    onclick="document.getElementById('quick-upload-input').click()">
+                选择文件上传
+            </button>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 border-end">
+                <div class="p-2">
+                    <label class="form-label fw-bold small text-uppercase">素材搜索</label>
+                    <div class="input-group mb-4 shadow-sm">
+                        <span class="input-group-text bg-white border-end-0">🔍</span>
+                        <input type="text" id="material-search" class="form-control border-start-0 ps-0" 
+                               placeholder="输入文件名搜索..." oninput="filterMaterials()">
+                    </div>
+
+                    <label class="form-label fw-bold small text-uppercase">文件分类</label>
+                    <div class="nav flex-column nav-pills" id="pills-tab">
+                        <button class="nav-link active mb-2 text-start" onclick="loadMaterials('video', this)">📹 视频管理</button>
+                        <button class="nav-link mb-2 text-start" onclick="loadMaterials('audio', this)">🎵 音频管理</button>
+                        <button class="nav-link mb-2 text-start" onclick="loadMaterials('image', this)">🖼️ 图片素材</button>
+                        <button class="nav-link mb-2 text-start" onclick="loadMaterials('material', this)">📄 其他文件</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-3 px-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="select-all" onclick="toggleSelectAll(this)">
+                        <label class="form-check-label small" for="select-all">当前页全选</label>
+                    </div>
+                    <button id="batch-delete-btn" class="btn btn-danger btn-sm d-none" onclick="handleBatchDelete()">
+                        🗑️ 批量永久删除 (<span id="select-count">0</span>)
+                    </button>
+                </div>
+                
+                <div id="material-list" class="list-group list-group-flush shadow-sm rounded-3">
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentType = 'video'; 
+    let allLoadedMaterials = []; 
+    // 确保这里的路径与 Python 后端定义的蓝图路径完全一致
+    const MATERIAL_API_BASE = "/admin/materials/api";
+
+    function loadMaterials(type, element) {
+        currentType = type;
+        if (element) {
+            const tabs = document.querySelectorAll('#pills-tab .nav-link');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        const container = document.getElementById('material-list');
+        container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><br>加载素材中...</div>';
+        document.getElementById('material-search').value = '';
+
+        // 使用反引号确保变量解析正确
+        fetch(`${MATERIAL_API_BASE}/my-media-system/${type}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.files.length === 0) {
+                    container.innerHTML = '<div class="text-center p-5 text-muted">此分类下暂无素材</div>';
+                    return;
+                }
+                allLoadedMaterials = data.files || []; 
+                renderMaterialList(allLoadedMaterials);
+            })
+            .catch(err => {
+                container.innerHTML = `<div class="text-center p-5 text-danger">请求失败: ${err}</div>`;
+            });
+    }
+
+    function filterMaterials() {
+        const keyword = document.getElementById('material-search').value.toLowerCase();
+        const filtered = allLoadedMaterials.filter(file => file.name.toLowerCase().includes(keyword));
+        renderMaterialList(filtered);
+    }
+
+    function renderMaterialList(files) {
+        const container = document.getElementById('material-list');
+        document.getElementById('select-all').checked = false;
+        updateBatchBtn();
+
+        container.innerHTML = files.map(file => {
+            const isVideo = file.name.match(/\.(mp4|webm|mov)$/i);
+            const preview = isVideo ? `${file.url}?x-oss-process=video/snapshot,t_2000,f_jpg,w_100,h_75,m_fast` : '';
+            
+            return `
+                <div class="list-group-item d-flex align-items-center gap-3 py-3 border-start-0 border-end-0">
+                    <input class="form-check-input material-checkbox" type="checkbox" value="${file.path}" onchange="updateBatchBtn()">
+                    <div class="flex-shrink-0" style="width: 60px;">
+                        ${isVideo ? `<img src="${preview}" class="rounded shadow-sm" style="width:60px; height:45px; object-fit:cover;">` : `<span style="font-size: 1.5rem;">📄</span>`}
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-bold small text-truncate" title="${file.name}">${file.name}</div>
+                        <div class="text-muted small">${(file.size/1024/1024).toFixed(2)} MB · ${file.last_modified}</div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 me-2" onclick="copyToClipboard('${file.url}')">复制链接</button>
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteMaterial('${file.path}', '${file.name}')">删除</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function handleFileUpload(file) {
+        if (!file) return;
+        const fileInput = document.getElementById('quick-upload-input');
+        const status = document.getElementById('upload-status');
+        status.innerHTML = `<span class="spinner-border spinner-border-sm text-purple"></span> 同步至 ${currentType} 目录...`;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', currentType);
+
+        // 对应 materials.py 中的 @materials_bp.route('/api/upload')
+        fetch(`${MATERIAL_API_BASE}/upload`, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                status.innerHTML = '<span class="text-success fw-bold">✅ 上传成功！</span>';
+                fileInput.value = '';
+                loadMaterials(currentType); 
+                setTimeout(() => status.innerText = '支持视频、音频及各类文档', 3000);
+            } else {
+                alert('上传失败: ' + data.message);
+                fileInput.value = '';
+            }
+        });
+    }
+
+    function deleteMaterial(ossPath, fileName) {
+        if (!confirm(`确定要永久删除 "${fileName}" 吗？`)) return;
+        fetch(`${MATERIAL_API_BASE}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: ossPath })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                loadMaterials(currentType); 
+            } else {
+                alert('删除失败: ' + data.message);
+            }
+        });
+    }
+
+    function updateBatchBtn() {
+        const checkboxes = document.querySelectorAll('.material-checkbox:checked');
+        const btn = document.getElementById('batch-delete-btn');
+        const countSpan = document.getElementById('select-count');
+        if (checkboxes.length > 0) {
+            btn.classList.remove('d-none');
+            countSpan.innerText = checkboxes.length;
+        } else {
+            btn.classList.add('d-none');
+        }
+    }
+
+    function toggleSelectAll(master) {
+        document.querySelectorAll('.material-checkbox').forEach(cb => cb.checked = master.checked);
+        updateBatchBtn();
+    }
+
+    function handleBatchDelete() {
+        const selected = Array.from(document.querySelectorAll('.material-checkbox:checked')).map(cb => cb.value);
+        if (!confirm(`删除选中的 ${selected.length} 个素材？`)) return;
+        fetch(`${MATERIAL_API_BASE}/delete_batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: selected })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                loadMaterials(currentType); 
+            }
+        });
+    }
+
+    function copyToClipboard(url) {
+        navigator.clipboard.writeText(url).then(() => alert('链接已复制！'));
+    }
+
+    window.onload = function() { loadMaterials('video'); };
+</script>
+
+<style>
+    .border-dashed { border: 2px dashed #dee2e6 !important; }
+    .btn-purple { background-color: #6f42c1; color: white; }
+    .btn-purple:hover { background-color: #5a32a3; color: white; }
+    .nav-pills .nav-link.active { background-color: #6f42c1; }
+</style>
+{% endblock %}

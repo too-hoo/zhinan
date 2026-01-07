@@ -5,7 +5,7 @@
         <h1 class="display-5 fw-bold">欢迎使用心理指南系统</h1>
         <p class="col-md-8 fs-4 mx-auto">这是一个专门为你准备的深度心理成长空间。请登录后查看你的专属指南资料。</p>
         {% if current_user.is_authenticated %}
-            <a href="{{ url_for('main.guide') }}" class="btn btn-primary btn-lg">进入我的指南库</a>
+            <a href="{{ url_for('content.list_guides') }}" class="btn btn-primary btn-lg">进入我的指南库</a>
         {% else %}
             <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">立即登录</a>
         {% endif %}

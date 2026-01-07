@@ -1,0 +1,99 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-white py-3">
+        <h4 class="mb-0">👥 用户权限管理</h4>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>当前状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td><strong>{{ user.username }}</strong></td>
+                    <td>
+                        <span class="badge {% if user.is_paid %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ '付费用户' if user.is_paid else '普通用户' }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-approve {% if user.is_paid %}btn-outline-danger{% else %}btn-primary{% endif %}" 
+                                data-user-id="{{ user.id }}">
+                            <span class="btn-text">{{ '取消授权' if user.is_paid else '一键开通权限' }}</span>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.admin_users.list_users', page=pagination.prev_num) if pagination.has_prev else '#' }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo; 上一页</span>
+                    </a>
+                </li>
+
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin.admin_users.list_users', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.admin_users.list_users', page=pagination.next_num) if pagination.has_next else '#' }}" aria-label="Next">
+                        <span aria-hidden="true">下一页 &raquo;</span>
+                    </a>
+                </li>
+
+            </ul>
+        </nav>
+        <div class="text-center text-muted small mt-2">
+            共 {{ pagination.total }} 个用户，当前第 {{ pagination.page }} / {{ pagination.pages }} 页
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.btn-approve').forEach(btn => {
+    btn.onclick = function() {
+        const userId = this.getAttribute('data-user-id');
+        const textSpan = this.querySelector('.btn-text');
+        const badge = this.closest('tr').querySelector('.badge');
+
+        // 修正：请求路径需匹配新的蓝图路由
+        fetch(`/admin/users/authorize/${userId}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                if(data.is_paid) {
+                    this.classList.replace('btn-primary', 'btn-outline-danger');
+                    textSpan.innerText = "取消授权";
+                    badge.className = "badge bg-success";
+                    badge.innerText = "付费用户";
+                } else {
+                    this.classList.replace('btn-outline-danger', 'btn-primary');
+                    textSpan.innerText = "一键开通权限";
+                    badge.className = "badge bg-secondary";
+                    badge.innerText = "普通用户";
+                }
+            }
+        });
+    };
+});
+</script>
+{% endblock %}

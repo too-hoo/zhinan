@@ -3,23 +3,37 @@
 {% block content %}
 <div class="row min-vh-100 mt-n4">
     <div class="col-md-2 bg-dark text-white p-4 shadow">
-        <h5 class="mb-4 text-primary">管理后台</h5>
-        <ul class="nav flex-column gap-2">
+        <h5 class="mb-4 text-primary fw-bold">管理后台</h5>
+        <ul class="nav flex-column gap-1">
             <li class="nav-item">
-                <a class="nav-link text-white py-2 rounded {% if request.endpoint == 'admin.admin_index' %}bg-primary{% endif %}" 
+                <a class="nav-link text-white py-2 rounded {% if request.blueprint == 'admin' and request.endpoint.endswith('admin_index') %}bg-primary{% endif %}" 
                    href="{{ url_for('admin.admin_index') }}">📊 数据概览</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-white py-2 rounded {% if request.endpoint == 'admin.manage_users' %}bg-primary{% endif %}" 
-                   href="{{ url_for('admin.manage_users') }}">👥 用户 & 激活码</a>
+                <a class="nav-link text-white py-2 rounded {% if 'admin_users' in request.blueprint %}bg-primary{% endif %}" 
+                   href="{{ url_for('admin.admin_users.list_users') }}">👥 用户权限管理</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-white py-2 rounded {% if request.endpoint == 'admin.manage_guides' %}bg-primary{% endif %}" 
-                   href="{{ url_for('admin.manage_guides') }}">📝 心理指南管理</a>
+                <a class="nav-link text-white py-2 rounded {% if 'admin_codes' in request.blueprint %}bg-primary{% endif %}" 
+                   href="{{ url_for('admin.admin_codes.list_codes') }}">🔑 激活码中心</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link text-white py-2 rounded {% if 'admin_guides' in request.blueprint %}bg-primary{% endif %}" 
+                   href="{{ url_for('admin.admin_guides.manage_guides') }}">📝 心理指南管理</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-white py-2 rounded {% if 'admin_materials' in request.blueprint %}bg-primary{% endif %}" 
+                   href="{{ url_for('admin.admin_materials.material_center') }}">📂 素材中心</a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin.admin_taxonomy.list_taxonomy') }}" 
+                class="list-group-item list-group-item-action border-0 py-3 mb-1 rounded-3 d-flex align-items-center {% if request.endpoint == 'admin.admin_taxonomy.list_taxonomy' %}active{% endif %}">
+                    <span class="me-3">📑</span> 分类标签管理</a>
+            </li>
+                
         </ul>
-        <hr>
-        <a href="/" class="btn btn-sm btn-outline-light w-100">返回前台</a>
+        <hr class="bg-secondary">
+        <a href="/" class="btn btn-sm btn-outline-light w-100 mt-2">返回前台</a>
     </div>
 
     <div class="col-md-10 p-4 bg-light">

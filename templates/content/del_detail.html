@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('content.list_guides') }}" class="text-decoration-none text-muted">指南列表</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ guide.category.name }}</li>
+                </ol>
+            </nav>
+
+            <h1 class="display-5 fw-bold mb-3 text-dark">{{ guide.title }}</h1>
+            <div class="d-flex align-items-center mb-4 text-muted small">
+                <span class="me-3">📅 {{ guide.created_at.strftime('%Y-%m-%d') }}</span>
+                <span class="me-3">👁️ {{ guide.view_count }} 次阅读</span>
+                <span>🏷️ 
+                    {% for tag in guide.tags %}
+                        <span class="badge bg-light text-secondary fw-normal">#{{ tag.name }}</span>
+                    {% endfor %}
+                </span>
+            </div>
+
+            {% if guide.cover_image_url or True %}
+            <div class="mb-5 shadow-sm rounded-4 overflow-hidden" style="max-height: 400px;">
+                <img src="{{ guide.cover_image_url or 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=1200' }}" 
+                     class="img-fluid w-100" style="object-fit: cover;">
+            </div>
+            {% endif %}
+
+            <script id="markdown-raw" type="text/template">
+            {{ guide.content | safe }}
+            </script>
+
+            <div id="markdown-target" class="article-body lh-lg fs-5 text-secondary"></div>
+
+            <hr class="my-5 opacity-10">
+
+            <div class="text-center mb-5">
+                <button id="like-btn" class="btn btn-outline-danger rounded-pill px-4 me-2">❤️ 点赞 (<span id="like-count">{{ guide.like_count }}</span>)</button>
+                <button id="share-btn" class="btn btn-outline-primary rounded-pill px-4">🔗 分享指南</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="related-section mt-5 py-5 border-top">
+    <h4 class="fw-bold mb-4">✨ 你可能还感兴趣...</h4>
+    <div class="row g-4">
+        {% for rel in related_guides %}
+        <div class="col-md-4">
+            <a href="{{ url_for('content.show_guide', guide_id=rel.id) }}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-up">
+                    <img src="{{ rel.cover_image_url or 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=400' }}" 
+                         class="card-img-top rounded-3" style="height: 150px; object-fit: cover;">
+                    <div class="card-body px-2 py-3">
+                        <h6 class="card-title text-dark fw-bold line-clamp-2">{{ rel.title }}</h6>
+                        <div class="text-muted small">
+                            <span>👁️ {{ rel.view_count }}</span>
+                            <span class="ms-2">❤️ {{ rel.like_count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    /* 让推荐卡片看起来更轻盈 */
+    .hover-up { transition: transform 0.3s ease; border-radius: 12px; }
+    .hover-up:hover { transform: translateY(-5px); }
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;  
+        overflow: hidden;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取隐藏的原始 Markdown 字符串
+        const rawContent = document.getElementById('markdown-raw').innerHTML.trim();
+        
+        // 配置 marked 选项，确保它处理换行更自然
+        marked.setOptions({
+            breaks: true,  // 支持 GitHub 风格的换行
+            gfm: true      // 启用 GitHub 风格的 Markdown
+        });
+
+        // 渲染并注入
+        document.getElementById('markdown-target').innerHTML = marked.parse(rawContent);
+    });
+</script>
+<script>
+document.getElementById('like-btn').onclick = function() {
+    fetch("{{ url_for('content.like_guide', guide_id=guide.id) }}", {method: 'POST'})
+    .then(response => response.json())
+    .then(data => {
+        if(data.status === 'success') {
+            document.getElementById('like-count').innerText = data.new_count;
+            this.classList.replace('btn-outline-danger', 'btn-danger'); // 变色反馈
+            this.classList.add('disabled'); // 防止重复点赞
+        }
+    });
+};
+</script>
+<script>
+document.getElementById('share-btn').onclick = function() {
+    // 1. 获取当前页面的完整链接
+    const url = window.location.href;
+    
+    // 2. 复制到剪贴板
+    navigator.clipboard.writeText(url).then(() => {
+        // 3. 视觉反馈：临时修改按钮文字
+        const originalText = this.innerHTML;
+        this.innerHTML = "✅ 已复制链接";
+        this.classList.replace('btn-outline-primary', 'btn-success');
+        
+        // 4. 2秒后恢复原状，给用户一种“操作成功”的确认感
+        setTimeout(() => {
+            this.innerHTML = originalText;
+            this.classList.replace('btn-success', 'btn-outline-primary');
+        }, 2000);
+    }).catch(err => {
+        console.error('无法复制: ', err);
+    });
+};
+</script>
+<style>
+    /* 让文章排版更高级 */
+    .article-body h2 { color: #333; margin-top: 2rem; font-weight: bold; border-left: 5px solid #6f42c1; padding-left: 15px; }
+    .article-body p { margin-bottom: 1.5rem; text-align: justify; }
+    .article-body blockquote { background: #f8f9fa; padding: 20px; border-radius: 10px; font-style: italic; color: #666; }
+</style>
+{% endblock %}

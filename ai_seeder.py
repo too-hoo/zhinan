@@ -7,8 +7,7 @@ import google.generativeai as genai
 from datetime import datetime, timezone
 
 # 1. 配置 AI
-# 建议通过 export GEMINI_API_KEY="xxx" 设置，或直接填入你的密钥
-API_KEY = "AIzaSyAlM1VnwDZ2h_8AuoGAtBGK0Ya-ht0Sv2k" 
+API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=API_KEY)
 
 # 2. 选择你列表中的可用模型

@@ -81,7 +81,34 @@
         </div>
     </div>
 </div>
+<nav aria-label="Page navigation" class="mt-5">
+    <ul class="pagination justify-content-center">
+        
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('content.list_guides', page=pagination.prev_num, category_id=current_cat, tag_id=current_tag, q=search_q) if pagination.has_prev else '#' }}">
+                &laquo; 上一页
+            </a>
+        </li>
 
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('content.list_guides', page=page_num, category_id=current_cat, tag_id=current_tag, q=search_q) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('content.list_guides', page=pagination.next_num, category_id=current_cat, tag_id=current_tag, q=search_q) if pagination.has_next else '#' }}">
+                下一页 &raquo;
+            </a>
+        </li>
+    </ul>
+</nav>
 <style>
     .guide-card-horizontal {
         transition: all 0.3s ease;

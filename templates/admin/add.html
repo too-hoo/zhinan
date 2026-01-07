@@ -4,15 +4,61 @@
 <div class="container py-2">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>🚀 发布新心理指南</h3>
-        <a href="{{ url_for('admin.manage_guides') }}" class="btn btn-outline-secondary btn-sm">返回列表</a>
+        <a href="{{ url_for('admin.admin_guides.manage_guides') }}" class="btn btn-outline-secondary btn-sm">返回列表</a>
+        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#materialDrawer">
+            📂 打开素材库
+        </button>
     </div>
+    <div class="offcanvas offcanvas-end w-50" tabindex="-1" id="materialDrawer">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title">素材中心</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div id="drop-zone" class="card bg-light border-dashed p-4 mb-4 text-center" 
+                style="border: 2px dashed #dee2e6; transition: all 0.3s ease; cursor: pointer;">
+                <input type="file" id="quick-upload-input" class="d-none" onchange="handleFileUpload(this.files[0])">
+                <div id="upload-icon" class="mb-2" style="font-size: 2rem;">✨</div>
+                <button class="btn btn-sm btn-purple rounded-pill px-4 mb-2" 
+                        onclick="document.getElementById('quick-upload-input').click()">
+                    点击或拖拽素材至此处
+                </button>
+                <div id="upload-status" class="small text-muted">支持视频、音频及各类文档</div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="select-all" onclick="toggleSelectAll(this)">
+                    <label class="form-check-label small" for="select-all">全选</label>
+                </div>
+                <button id="batch-delete-btn" class="btn btn-sm btn-outline-danger d-none" onclick="handleBatchDelete()">
+                    🗑️ 批量删除 (<span id="select-count">0</span>)
+                </button>
+            </div>
+            <div class="input-group mb-3 shadow-sm">
+                <span class="input-group-text bg-white border-end-0">🔍</span>
+                <input type="text" id="material-search" class="form-control border-start-0 ps-0" 
+                    placeholder="通过文件名搜索当前分类..." oninput="filterMaterials()">
+            </div>
 
-    <form method="POST" class="card p-4 border-0 shadow-sm">
+            <ul class="nav nav-pills mb-3" id="pills-tab">
+                <li class="nav-item"><button class="nav-link active" onclick="loadMaterials('video', this)">视频</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="loadMaterials('audio', this)">音频</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="loadMaterials('image', this)">图片</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="loadMaterials('material', this)">其他素材</button></li>
+            </ul>
+            
+            <div id="material-list" class="list-group list-group-flush">
+            </div>
+        </div>
+    </div>
+    <form method="POST" enctype="multipart/form-data" class="card p-4 border-0 shadow-sm">
         <div class="row">
             <div class="col-md-4 border-end">
                 <div class="mb-3">
-                    <label class="form-label fw-bold small text-uppercase">封面图 URL</label>
-                    <input type="text" name="cover_image_url" class="form-control" placeholder="粘贴精美图片链接...">
+                    <label class="form-label fw-bold small text-uppercase">封面图上传</label>
+                    <input type="file" name="cover_file" class="form-control mb-2" accept="image/*">
+                    <div class="text-muted small">或者粘贴图片链接：</div>
+                    <input type="text" name="cover_image_url" class="form-control mt-1" placeholder="http://...">
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-uppercase">所属分类</label>
@@ -50,7 +96,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold small">详细内容 (Markdown)</label>
-                    <textarea name="content" class="form-control font-monospace" rows="12"></textarea>
+                    <textarea name="content" id="content-editor" class="form-control font-monospace" rows="12"></textarea>
                 </div>
                 <div class="text-end">
                     <button type="submit" class="btn btn-primary px-5 rounded-pill">发布内容</button>
@@ -72,7 +118,7 @@ document.getElementById('ai-btn').onclick = function() {
     this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI 正在思考中...';
     this.disabled = true;
 
-    fetch("{{ url_for('admin.ai_polish') }}", {
+    fetch("{{ url_for('admin.admin_guides.ai_polish') }}", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: title })
@@ -97,6 +143,313 @@ document.getElementById('ai-btn').onclick = function() {
 };
 </script>
 
+<script>
+    let currentType = 'video'; // 默认为视频分类
+    let allLoadedMaterials = []; //
+    // 更新素材中心所有 API 路径，确保指向 materials 蓝图
+    // 在 materials 蓝图定义的 url_prefix 是 '/materials'
+    const MATERIAL_API_BASE = "/admin/materials/api";
+
+    function loadMaterials(type, element) {
+        currentType = type;
+        // 1. 处理高亮逻辑
+        if (element) {
+            const tabs = document.querySelectorAll('#pills-tab .nav-link');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        const container = document.getElementById('material-list');
+        container.innerHTML = '<div class="text-center p-4">加载中...</div>';
+        // 清空搜索框
+        document.getElementById('material-search').value = '';
+
+        fetch(`${MATERIAL_API_BASE}/my-media-system/${type}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.files.length === 0) {
+                    container.innerHTML = '<div class="text-center p-5 text-muted">此分类下暂无素材</div>';
+                    return;
+                }
+                allLoadedMaterials = data.files || []; // 缓存数据
+                renderMaterialList(allLoadedMaterials); // 调用渲染函数
+            })
+            .catch(err => {
+                container.innerHTML = `<div class="text-center p-4 text-danger small">请求失败: ${err}</div>`;
+            });
+    }
+
+
+    // 查找： 新增：过滤函数
+    function filterMaterials() {
+        const keyword = document.getElementById('material-search').value.toLowerCase();
+        
+        // 根据文件名进行过滤
+        const filtered = allLoadedMaterials.filter(file => 
+            file.name.toLowerCase().includes(keyword)
+        );
+        
+        renderMaterialList(filtered);
+    }
+    
+    // 3. 封装：渲染列表函数 (整合你之前的预览图和图标逻辑)
+    function renderMaterialList(files) {
+        const container = document.getElementById('material-list');
+
+        // --- 强制重置全选框和批量按钮 ---
+        document.getElementById('select-all').checked = false;
+        updateBatchBtn();
+
+        if (files.length === 0) {
+            container.innerHTML = '<div class="text-center p-5 text-muted small">未找到匹配的素材</div>';
+            return;
+        }
+
+        container.innerHTML = files.map(file => {
+            // --- 图标判断逻辑 ---
+            const isPDF = file.name.toLowerCase().endsWith('.pdf');
+            const isWord = file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc');
+            const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
+            const isPPT = file.name.toLowerCase().endsWith('.pptx') || file.name.toLowerCase().endsWith('.ppt');
+
+            let icon = '📄'; 
+            if (isPDF) icon = '📕';
+            else if (isWord) icon = '📘';
+            else if (isExcel) icon = '📗';
+            else if (isPPT) icon = '📙';
+
+            // --- 视频处理逻辑 ---
+            const isVideo = file.name.match(/\.(mp4|webm|mov)$/i);
+            // 使用 t_2000 (2秒处) 避开某些视频开头的黑屏，并增加图片质量
+            const videoPreview = isVideo ? `${file.url}?x-oss-process=video/snapshot,t_2000,f_jpg,w_100,h_75,m_fast` : '';
+
+            return `
+                <div class="list-group-item d-flex align-items-center gap-3 py-3">
+                    <input class="form-check-input material-checkbox" type="checkbox" 
+                        value="${file.path}" onchange="updateBatchBtn()">
+
+                    <div class="flex-shrink-0 text-center" style="width: 60px;">
+                        ${isVideo 
+                            ? `<img src="${videoPreview}" class="rounded shadow-sm" style="width:60px; height:45px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/60x45?text=Video'">` 
+                            : `<span style="font-size: 1.5rem;">${icon}</span>`
+                        }
+                    </div>
+
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-bold small text-truncate" title="${file.name}">${file.name}</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">
+                            ${(file.size/1024/1024).toFixed(2)} MB · ${file.last_modified || ''}
+                        </div>
+                    </div>
+
+                    <button class="btn btn-sm btn-purple rounded-pill px-3" 
+                            onclick="insertToEditor('${file.url}', '${file.name}')">
+                        插入
+                    </button>
+
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-2" onclick="copyToClipboard('${file.url}')">
+                        🔗
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger rounded-pill px-2" 
+                            onclick="deleteMaterial('${file.path}', '${file.name}')">
+                        🗑️
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+        
+    // 获取拖拽区域元素
+    const dropZone = document.getElementById('drop-zone');
+
+    // 1. 阻止浏览器默认行为（防止拖入文件直接在浏览器打开）
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, e => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+
+    // 2. 拖拽移入/经过时的视觉效果
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.style.borderColor = '#6f42c1'; // 变为紫色
+            dropZone.style.backgroundColor = '#f8f4ff'; // 背景变淡紫
+            document.getElementById('upload-icon').innerText = '📥';
+        }, false);
+    });
+
+    // 3. 拖拽离开或结束时的还原效果
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.style.borderColor = '#dee2e6';
+            dropZone.style.backgroundColor = '#f8f9fa';
+            document.getElementById('upload-icon').innerText = '✨';
+        }, false);
+    });
+
+    // 4. 处理放下文件
+    dropZone.addEventListener('drop', e => {
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            handleFileUpload(file);
+        }
+    }, false);
+
+    // 5. 统一的上传函数
+    function handleFileUpload(file) {
+        if (!file) return;
+        
+        const fileInput = document.getElementById('quick-upload-input');
+        const status = document.getElementById('upload-status');
+        status.innerHTML = `<span class="spinner-border spinner-border-sm text-purple"></span> 正在同步到 ${currentType} 目录...`;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', currentType); // 使用当前页签的分类
+
+        fetch(`${MATERIAL_API_BASE}/upload`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('接口返回 404 或服务器错误');
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                status.innerHTML = '<span class="text-success fw-bold">✅ 上传成功！</span>';
+                // --- 核心修复：清空输入框的值 ---
+                // 这样下次即使选择同一个文件，也会触发 onchange 事件
+                fileInput.value = '';
+                // 立即刷新当前分类列表
+                loadMaterials(currentType); 
+                setTimeout(() => status.innerText = '支持视频、音频及各类文档', 3000);
+            } else {
+                alert('上传失败: ' + data.message);
+                status.innerText = '上传失败，请重试';
+            }
+        });
+    }
+
+    function insertToEditor(url, fileName) {
+        const editor = document.getElementById('content-editor');
+        let markdown = '';
+
+        // 1. 根据后缀名自动判断 Markdown 格式
+        const ext = fileName.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+            markdown = `![${fileName}](${url})\n`; // 图片格式
+        } else if (['mp4', 'webm', 'mov'].includes(ext)) {
+            // 视频建议使用 HTML 标签以获得更好的播放效果
+            markdown = `\n<video src="${url}" controls width="100%"></video>\n`;
+        } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
+            markdown = `\n<audio src="${url}" controls></audio>\n`;
+        } else {
+            markdown = `[附件：${fileName}](${url})\n`; // 普通文件
+        }
+
+        // 2. 获取光标位置并插入内容
+        const startPos = editor.selectionStart;
+        const endPos = editor.selectionEnd;
+        const content = editor.value;
+
+        // 在光标处切开字符串并插入内容
+        editor.value = content.substring(0, startPos) + 
+                    markdown + 
+                    content.substring(endPos, content.length);
+
+        // 3. 重新设置光标位置到插入内容之后
+        editor.focus();
+        editor.selectionStart = startPos + markdown.length;
+        editor.selectionEnd = startPos + markdown.length;
+
+        // 4. 可选：提示用户
+        alert('已插入到正文');
+    }
+
+    function deleteMaterial(ossPath, fileName) {
+        // 1. 安全确认
+        if (!confirm(`确定要永久删除素材 "${fileName}" 吗？此操作不可撤销。`)) {
+            return;
+        }
+
+        // 2. 发送请求
+        fetch(`${MATERIAL_API_BASE}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: ossPath })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // 3. 成功后局部刷新列表
+                alert('删除成功');
+                loadMaterials(currentType); 
+            } else {
+                alert('删除失败: ' + data.message);
+            }
+        })
+        .catch(err => alert('网络错误: ' + err));
+    }
+
+    // 更新批量删除按钮状态
+    function updateBatchBtn() {
+        const checkboxes = document.querySelectorAll('.material-checkbox:checked');
+        const btn = document.getElementById('batch-delete-btn');
+        const countSpan = document.getElementById('select-count');
+        
+        if (checkboxes.length > 0) {
+            btn.classList.remove('d-none');
+            countSpan.innerText = checkboxes.length;
+        } else {
+            btn.classList.add('d-none');
+        }
+    }
+
+    // 全选/取消全选
+    function toggleSelectAll(master) {
+        const checkboxes = document.querySelectorAll('.material-checkbox');
+        checkboxes.forEach(cb => cb.checked = master.checked);
+        updateBatchBtn();
+    }
+
+    // 执行批量删除
+    function handleBatchDelete() {
+        const selected = Array.from(document.querySelectorAll('.material-checkbox:checked'))
+                            .map(cb => cb.value);
+        
+        if (!confirm(`确定要删除选中的 ${selected.length} 个文件吗？此操作不可恢复。`)) {
+            return;
+        }
+
+        fetch(`${MATERIAL_API_BASE}/delete_batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: selected })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                document.getElementById('select-all').checked = false;
+                loadMaterials(currentType); // 刷新列表
+            } else {
+                alert('删除失败: ' + data.message);
+            }
+        });
+    }
+
+    function copyToClipboard(url) {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('链接已复制，可直接粘贴到编辑器！');
+        });
+    }
+    // 确保在页面加载后执行,加载视频
+    window.addEventListener('load', function() {
+        loadMaterials('video'); 
+    });
+</script>
 <style>
     .btn-outline-purple:hover { background-color: #6f42c1; color: white; }
 </style>

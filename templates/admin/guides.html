@@ -1,31 +1,65 @@
 {% extends "admin/admin_base.html" %}
 
 {% block admin_content %}
-<div class="d-flex justify-content-between mb-4">
-    <h3>📝 心理指南库</h3>
-    <a href="{{ url_for('admin.add_guide') }}" class="btn btn-primary btn-sm">+ 新增指南</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">📝 心理指南内容管理</h3>
+    <a href="{{ url_for('admin.admin_guides.add_guide') }}" class="btn btn-primary btn-sm">+ 发布新指南</a>
 </div>
 
-<table class="table table-hover bg-white rounded shadow-sm">
-    <thead>
-        <tr>
-            <th>标题</th>
-            <th>分类</th>
-            <th>更新时间</th>
-            <th>操作</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for guide in guides %}
-        <tr>
-            <td>{{ guide.title }}</td>
-            <td>{{ guide.category.name }}</td>
-            <td class="small">{{ guide.updated_at.strftime('%Y-%m-%d') }}</td>
-            <td>
-                <a href="{{ url_for('admin.edit_guide', guide_id=guide.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
-            </td>
-        </tr>
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 80px;">封面</th>
+                    <th>指南标题</th>
+                    <th>分类</th>
+                    <th>最后更新</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for guide in guides %}
+                <tr>
+                    <td>
+                        {% if guide.cover_image_url %}
+                            <img src="{{ guide.cover_image_url }}" class="rounded shadow-sm" style="width: 60px; height: 40px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded shadow-sm bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 40px; font-size: 10px; color: #ccc;">
+                                无封面
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td><div class="fw-bold">{{ guide.title }}</div></td>
+                    <td><span class="badge bg-light text-dark">{{ guide.category.name if guide.category else '未分类' }}</span></td>
+                    <td class="small text-muted">{{ guide.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('admin.admin_guides.add_guide', guide_id=guide.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.admin_guides.manage_guides', page=pagination.prev_num) if pagination.has_prev else '#' }}">上一页</a>
+        </li>
+        {% for page_num in pagination.iter_pages() %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.admin_guides.manage_guides', page=page_num) }}">{{ page_num }}</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
         {% endfor %}
-    </tbody>
-</table>
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.admin_guides.manage_guides', page=pagination.next_num) if pagination.has_next else '#' }}">下一页</a>
+        </li>
+    </ul>
+</nav>
 {% endblock %}
