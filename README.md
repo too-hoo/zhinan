@@ -11,7 +11,6 @@
 ```bash
 # 赋予执行权限
 chmod +x init_online.sh
-# 运行初始化
 ./init_online.sh
 ```
 5、配置环境变量：
