@@ -17,7 +17,7 @@ class User(UserMixin, db.Model):
     # 核心修改：手机号作为主登录凭证，必须唯一且不能为空
     phone = db.Column(db.String(11), unique=True, nullable=False)
     username = db.Column(db.String(80), unique=False, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
     # 扩展信息
     email = db.Column(db.String(120), unique=True, nullable=True)
     gender = db.Column(db.String(10), nullable=True) # 如：男、女、保密
