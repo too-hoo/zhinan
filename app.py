@@ -40,12 +40,13 @@ app.register_blueprint(content_bp)
 
 @app.context_processor
 def inject_global_data():
-    """将分类和标签注入所有模版，确保全局搜索框可用"""
-    from models import Category, Tag
-    return {
-        'all_categories': Category.query.all(),
-        'all_tags': Tag.query.limit(10).all() # 仅展示热门前 10 个
-    }
+    try:
+        # 加上 try-except，如果表不存在，先给页面返回空列表
+        from models import Category
+        all_categories = Category.query.all()
+    except Exception:
+        all_categories = []
+    return dict(all_categories=all_categories)
     
 # --- 启动前初始化数据库 ---
 if __name__ == '__main__':
