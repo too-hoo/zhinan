@@ -14,3 +14,8 @@ chmod +x init_online.sh
 # 运行初始化
 ./init_online.sh
 ```
+5、配置环境变量：
+OSS_ACCESS_KEY_ID=你的
+OSS_ACCESS_KEY_SECRET=你的
+GEMINI_API_KEY=你的
+

@@ -18,10 +18,10 @@
 #     print(f"用户 {u.username} 现在的付费状态是: {u.is_paid}")
 
 
-# from app import app, db
-# with app.app_context():
-#     db.create_all() # 创建数据库
-#     print('数据库已按照最新模型重新生成！')
+from app import app, db
+with app.app_context():
+    db.create_all() # 创建数据库
+    print('数据库已按照最新模型重新生成！')
 
 from app import app, db, User
 with app.app_context():
