@@ -10,13 +10,14 @@
                 </div>
                 <h2 class="fw-bold mb-3">专属资料已锁定</h2>
                 <p class="text-muted mb-4 px-4">
-                    抱歉，此心理指南属于<b>高级会员专属内容</b>。<br>
+                    抱歉，此指南属于<b>高级会员专属内容</b>。<br>
                     你需要开通付费权限后才能探索这部分深度知识。
                 </p>
                 
                 <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
                     <a href="{{ url_for('content.index') }}" class="btn btn-outline-secondary px-4">返回首页</a>
-                    <a href="#" class="btn btn-primary px-4" onclick="alert('请联系管理员 th 开通权限')">咨询开通权限</a>
+                    <a href="#" class="btn btn-primary px-4" onclick="alert('请联系管理员 xy123495 开通权限')">咨询开通权限</a>
+                    <a href="{{ url_for('auth.activate') }}" class="btn btn-purple btn-lg rounded-pill">升级为核心成员</a>
                 </div>
                 
                 <p class="mt-4 small text-secondary">

@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="reading-progress-container">
+    <div class="reading-progress-bar" id="readingProgress"></div>
+</div>
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-9">
@@ -37,6 +40,11 @@
             <div class="text-center py-5 border-top border-bottom mb-5">
                 <button class="btn btn-outline-danger btn-lg rounded-pill px-5" id="like-btn" data-id="{{ guide.id }}">
                     <span id="like-icon">🤍</span> 觉得有帮助 (<span id="like-count">{{ guide.like_count }}</span>)
+                </button>
+                <button class="btn {% if guide in current_user.favorite_guides %}btn-warning{% else %}btn-outline-warning{% endif %} btn-lg rounded-pill px-5 ms-3" 
+                        id="fav-btn" data-id="{{ guide.id }}">
+                    <span id="fav-icon">{% if guide in current_user.favorite_guides %}⭐{% else %}☆{% endif %}</span> 
+                    <span id="fav-text">{% if guide in current_user.favorite_guides %}已收藏{% else %}加入收藏{% endif %}</span>
                 </button>
             </div>
 
@@ -75,25 +83,363 @@
         border-radius: 8px;
         margin: 15px 0;
     }
-    .hover-up:hover { transform: translateY(-5px); transition: 0.3s; }
+
+    /* 进度条外壳：固定在顶部，透明背景 */
+    .reading-progress-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: transparent;
+        z-index: 2000; /* 确保在导航栏之上 */
+    }
+
+    /* 进度条主体：充满活力的紫色，带一点发光效果 */
+    .reading-progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(to right, #6f42c1, #a158ff);
+        box-shadow: 0 0 8px rgba(111, 66, 193, 0.5);
+        transition: width 0.1s ease-out; /* 让移动更顺滑 */
+    }
+
+    /* 视频布局优化：模仿微信/主流平台质感 */
+    .guide-content video {
+        display: block;
+        /* 1. 核心限宽：在大屏幕上不会无限放大 */
+        max-width: 90%; 
+        width: 720px; /* 设定一个理想的展示宽度 */
+        
+        /* 2. 纵向限高：防止纵向视频（如手机录屏）占满全屏 */
+        max-height: 480px; 
+        
+        /* 3. 居中显示 */
+        margin: 32px auto; 
+        
+        /* 4. 宽高比保护：保持标准的电影/电视比例 */
+        aspect-ratio: 16 / 9; 
+        
+        /* 5. 视觉装饰 */
+        border-radius: 16px; 
+        background-color: #000; 
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); 
+        
+        /* 确保视频内容在容器内不被裁剪 */
+        object-fit: contain; 
+    }
+
+    /* 针对手机端的适配 */
+    @media (max-width: 768px) {
+        .guide-content video {
+            max-width: 100%;
+            width: 100%;
+            aspect-ratio: auto; /* 手机端允许根据视频原比例显示 */
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    }
+    .doc-btns .btn-outline-purple {
+        border-color: #6f42c1;
+        color: #6f42c1;
+        border-radius: 20px;
+    }
+    .doc-btns .btn-outline-purple:hover {
+        background-color: #6f42c1;
+        color: white;
+    }
+    /* 文档卡片基础样式 */
+    .doc-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 20px 0;
+        text-decoration: none !important;
+        transition: all 0.3s ease;
+    }
+
+    .doc-card:hover {
+        background: #f1f3f5;
+        border-color: #6f42c1;
+        transform: translateY(-2px);
+    }
+
+    /* 图标区域 */
+    .doc-icon {
+        font-size: 2.5rem;
+        margin-right: 16px;
+        line-height: 1;
+    }
+
+    /* 文字区域 */
+    .doc-info {
+        flex-grow: 1;
+        overflow: hidden;
+    }
+
+    .doc-name {
+        color: #343a40;
+        font-weight: 600;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    .doc-meta {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    /* 下载按钮感 */
+    .doc-action {
+        color: #6f42c1;
+        font-weight: bold;
+        font-size: 0.9rem;
+        margin-left: 12px;
+    }
+
+    /* 让正文中的图片、音频和视频全部居中且美化 */
+    .guide-content img, 
+    .guide-content audio, 
+    .guide-content video {
+        display: block; /* 转换为块级元素 */
+        margin: 30px auto; /* 纵向留白 30px，横向自动居中 */
+        max-width: 90%; /* 限制宽度，防止溢出 */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* 增加轻微阴影，提升质感 */
+    }
+
+    /* 录音文件的特殊处理：宽度适中，不要撑满全屏 */
+    .guide-content audio {
+        width: 600px; 
+        max-width: 100%; /* 手机端自动回缩 */
+        height: 45px;
+        border-radius: 30px; /* 圆角风格 */
+    }
+
+    /* 图片增加圆角和点击缩放感 */
+    .guide-content img {
+        border-radius: 12px;
+        cursor: zoom-in;
+        transition: transform 0.2s;
+    }
+    .guide-content img:hover {
+        transform: scale(1.01);
+    }
+    
+    /* templates/content/detail.html */
+    .guide-content a[data-fslightbox] {
+        display: block;
+        text-align: center;
+        transition: opacity 0.3s ease;
+    }
+
+    .guide-content a[data-fslightbox]:hover {
+        opacity: 0.9;
+    }
+
+    /* 在图片下方增加一个小提示（可选） */
+    .guide-content a[data-fslightbox]::after {
+        content: "点击查看大图";
+        display: block;
+        font-size: 0.75rem;
+        color: #adb5bd;
+        margin-top: 8px;
+    }
 </style>
 
 <script>
-// 点赞 AJAX 逻辑
+// 1. 点赞逻辑
 document.getElementById('like-btn').onclick = function() {
     const guideId = this.getAttribute('data-id');
     const btn = this;
 
-    fetch(`/content/like/${guideId}`, { method: 'POST' })
-    .then(res => res.json())
+    // --- 修复点：路径改为 /like/ ---
+    fetch(`/like/${guideId}`, { method: 'POST' }) 
+    .then(res => {
+        if (!res.ok) throw new Error('404 Not Found'); // 增加错误处理
+        return res.json();
+    })
     .then(data => {
         if(data.status === 'success') {
             document.getElementById('like-count').innerText = data.new_count;
             document.getElementById('like-icon').innerText = '❤️';
             btn.classList.replace('btn-outline-danger', 'btn-danger');
-            btn.disabled = true; // 防止重复点赞
+            btn.disabled = true;
         }
-    });
+    })
+    .catch(err => console.error('点赞请求失败:', err));
 };
+
+// 2. 收藏逻辑
+document.getElementById('fav-btn').onclick = function() {
+    const guideId = this.getAttribute('data-id');
+    const btn = this;
+    const icon = document.getElementById('fav-icon');
+    const text = document.getElementById('fav-text');
+
+    // --- 修复点：路径改为 /favorite/ ---
+    fetch(`/favorite/${guideId}`, { method: 'POST' }) 
+    .then(res => {
+        if (!res.ok) throw new Error('404 Not Found');
+        return res.json();
+    })
+    .then(data => {
+        if(data.status === 'success') {
+            if(data.action === 'favorited') {
+                btn.classList.replace('btn-outline-warning', 'btn-warning');
+                icon.innerText = '⭐';
+                text.innerText = '已收藏';
+            } else {
+                btn.classList.replace('btn-warning', 'btn-outline-warning');
+                icon.innerText = '☆';
+                text.innerText = '加入收藏';
+            }
+        }
+    })
+    .catch(err => console.error('收藏请求失败:', err));
+};
+
+// 监听窗口滚动事件
+window.onscroll = function() {
+    updateReadingProgress();
+};
+
+function updateReadingProgress() {
+    const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+    // 计算文档的总高度减去可视区域高度
+    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    // 计算百分比
+    const scrolled = (winScroll / height) * 100;
+    
+    // 更新进度条宽度
+    const progressBar = document.getElementById("readingProgress");
+    if (progressBar) {
+        progressBar.style.width = scrolled + "%";
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const article = document.getElementById('markdown-body');
+    const links = article.getElementsByTagName('a');
+
+    const iconMap = {
+        'pdf': '📕',
+        'docx': '📘', 'doc': '📘',
+        'xlsx': '📗', 'xls': '📗',
+        'pptx': '📙', 'ppt': '📙',
+        'zip': '📦', 'rar': '📦',
+        'txt': '📄'
+    };
+
+    // 倒序遍历，防止修改 DOM 影响索引
+    for (let i = links.length - 1; i >= 0; i--) {
+        const link = links[i];
+        const url = link.href.toLowerCase();
+        
+        // 提取后缀名（考虑到可能有签名参数，取路径部分）
+        const path = link.getAttribute('href').split('?')[0];
+        const ext = path.split('.').pop().toLowerCase();
+
+        if (iconMap[ext]) {
+            const fileName = link.innerText || '下载文件';
+            const icon = iconMap[ext];
+
+            // 创建卡片结构
+            const card = document.createElement('a');
+            card.href = link.href;
+            card.className = 'doc-card';
+            card.innerHTML = `
+                <div class="doc-icon">${icon}</div>
+                <div class="doc-info">
+                    <div class="doc-name">${fileName}</div>
+                    <div class="doc-meta">点击安全预览/下载 ${ext.toUpperCase()} 文档</div>
+                </div>
+                <div class="doc-action">立即查看 →</div>
+            `;
+            
+            // 替换原有的超链接
+            link.parentNode.replaceChild(card, link);
+        }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const article = document.getElementById('markdown-body');
+    const links = article.getElementsByTagName('a');
+
+    const iconMap = {
+        'pdf': '📕', 'docx': '📘', 'doc': '📘',
+        'xlsx': '📗', 'xls': '📗', 'pptx': '📙', 'ppt': '📙'
+    };
+
+    for (let i = links.length - 1; i >= 0; i--) {
+        const link = links[i];
+        const rawUrl = link.getAttribute('href');
+        const path = rawUrl.split('?')[0];
+        const ext = path.split('.').pop().toLowerCase();
+
+        if (iconMap[ext]) {
+            const fileName = link.innerText || '查看文档';
+            const icon = iconMap[ext];
+            let previewUrl = link.href;
+
+            // --- 核心逻辑：根据文件类型生成预览地址 ---
+            if (['docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt'].includes(ext)) {
+                // 使用微软接口预览 Office 文件，需要对原始 URL 进行编码
+                previewUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(link.href)}`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'doc-card-wrapper mb-4';
+            card.innerHTML = `
+                <div class="doc-card">
+                    <div class="doc-icon">${icon}</div>
+                    <div class="doc-info">
+                        <div class="doc-name">${fileName}</div>
+                        <div class="doc-meta">文件类型：${ext.toUpperCase()}</div>
+                    </div>
+                    <div class="doc-btns">
+                        <a href="${previewUrl}" target="_blank" class="btn btn-sm btn-outline-purple me-2">在线阅读</a>
+                        <a href="${link.href}" class="btn btn-sm btn-light">下载</a>
+                    </div>
+                </div>
+            `;
+            
+            link.parentNode.replaceChild(card, link);
+        }
+    }
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const article = document.getElementById('markdown-body');
+    
+    // --- 新增：图片灯箱处理逻辑 ---
+    const images = article.getElementsByTagName('img');
+    for (let img of images) {
+        // 排除掉已经是链接的图片，或者是某些小图标
+        if (img.parentNode.tagName !== 'A' && img.offsetWidth > 100) {
+            const wrapper = document.createElement('a');
+            
+            // 设置灯箱触发属性
+            wrapper.setAttribute('data-fslightbox', 'guide-gallery'); 
+            wrapper.setAttribute('href', img.src); // 点击后放大的目标地址
+            wrapper.style.cursor = 'zoom-in';
+            
+            // 将图片包裹起来
+            img.parentNode.insertBefore(wrapper, img);
+            wrapper.appendChild(img);
+        }
+    }
+
+    // 刷新灯箱插件，确保动态添加的链接生效
+    refreshFsLightbox();
+
+    // ... 之前的文档卡片处理逻辑 ...
+});
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fslightbox/3.0.9/index.min.js"></script>
 {% endblock %}

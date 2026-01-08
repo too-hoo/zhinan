@@ -1,4 +1,4 @@
-# blueprints/admin/guides.py
+# blueprints/admin/guides.py 管理后台指南内容管理控制
 import os, re, json
 import google.generativeai as genai
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
@@ -59,6 +59,30 @@ def add_guide():
     tags = Tag.query.all()
     return render_template('admin/add.html', categories=categories, tags=tags)
 
+# 编辑指南内容
+@guides_bp.route('/edit/<int:guide_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_guide(guide_id):
+    guide = GuideContent.query.get_or_404(guide_id)
+    if request.method == 'POST':
+        guide.title = request.form.get('title')
+        guide.summary = request.form.get('summary')
+        guide.content = request.form.get('content')
+        guide.cover_image_url = request.form.get('cover_image_url')
+        guide.category_id = request.form.get('category_id')
+        
+        tag_ids = request.form.getlist('tags')
+        guide.tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
+        
+        db.session.commit()
+        flash(f'指南《{guide.title}》已更新！', 'success')
+        
+        return redirect(url_for('admin.admin_guides.manage_guides'))
+    
+    categories = Category.query.all()
+    tags = Tag.query.all()
+    return render_template('admin/edit.html', guide=guide, categories=categories, tags=tags)
 
 @guides_bp.route('/ai-polish', methods=['POST'])
 @login_required

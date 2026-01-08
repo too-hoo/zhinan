@@ -7,65 +7,130 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar-brand { font-weight: bold; color: #6f42c1 !important; }
-        .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        /* 让 Toast 稍微靠下一点，别挡住右上角的按钮 */
-        .toast-container { margin-top: 20px; }
+        .navbar { height: 65px; }
+        .nav-search { max-width: 450px; flex-grow: 1; }
+        .btn-purple { background: #6f42c1; color: white; border-radius: 20px; border: none; }
+        .btn-purple:hover { background: #5a32a3; color: white; }
+        .rounded-start-pill { border-radius: 20px 0 0 20px !important; }
+        .rounded-end-pill { border-radius: 0 20px 20px 0 !important; }
+        .modal-content { border-radius: 20px; border: none; }
+        .text-purple { color: #6f42c1; }
+        /* 针对移动端隐藏搜索框，或者你可以选择保留 */
+        @media (max-width: 576px) { .nav-search { display: none; } }
     </style>
 </head>
-<body>
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="toast align-items-center text-white bg-{{ category }} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="d-flex">
-                            <div class="toast-body">
-                                {{ message }}
-                            </div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+<body data-auth="{{ 'true' if current_user.is_authenticated else 'false' }}">
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="/">🧠 心理指南系统</a>
-            <div class="ms-auto">
+            <a class="navbar-brand fw-bold text-purple" href="/">🧠 心理指南</a>
+            
+            <div class="nav-search mx-lg-5 mx-2 position-relative">
+                <form action="{{ url_for('content.list_guides') }}" method="GET" class="input-group">
+                    <input type="text" name="q" id="search-input" class="form-control bg-light border-0 rounded-start-pill px-3" 
+                           placeholder="🔍 搜索话题、标签..." autocomplete="off">
+                    <button class="btn btn-purple rounded-end-pill px-4" type="submit">搜索</button>
+                </form>
+                <div id="tag-dropdown" class="dropdown-menu shadow border-0 w-100 mt-1 rounded-3 p-3">
+                    <h6 class="dropdown-header px-0 small text-muted">热门标签</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for tag in all_tags %}
+                        <a href="{{ url_for('content.list_guides', tag_id=tag.id) }}" class="badge bg-light text-dark text-decoration-none border">#{{ tag.name }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="ms-auto d-flex align-items-center">
                 {% if current_user.is_authenticated %}
-                    <span class="me-3 text-muted">你好, {{ current_user.username }}</span>
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm">退出</a>
+                    <a href="{{ url_for('main.profile') }}" class="text-dark text-decoration-none me-3 small fw-bold">👤 {{ current_user.username }}</a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm rounded-pill">退出</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-sm me-2">登录</a>
-                    <a href="{{ url_for('auth.activate') }}" class="btn btn-primary btn-sm">注册</a>
+                    <button class="btn btn-purple btn-sm px-4" data-bs-toggle="modal" data-bs-target="#loginModal">登录</button>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <div class="container">
-        {% block content %}{% endblock %}
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg">
+                <div class="modal-body p-5">
+                    <div class="text-center mb-4">
+                        <h4 class="fw-bold">🔐 欢迎回来</h4>
+                        <p class="text-muted small">登录后解锁全部深度心理指南</p>
+                    </div>
+                    <form action="{{ url_for('auth.login') }}" method="POST">
+                        <div class="mb-3">
+                            <input type="text" name="phone" class="form-control rounded-pill px-3" placeholder="手机号" required>
+                        </div>
+                        <div class="mb-4">
+                            <input type="password" name="password" class="form-control rounded-pill px-3" placeholder="密码" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-purple btn-lg fw-bold">立即登录</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <main class="container py-4">
+        {% block content %}{% endblock %}
+    </main>
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+            <div class="toast align-items-center text-white bg-{{ 'danger' if category == 'danger' or category == 'error' else 'success' }} border-0 shadow-lg mb-2" 
+                role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                {% if category == 'danger' or category == 'error' %} ❌ {% else %} ✅ {% endif %}
+                {{ message }}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            </div>
+        {% endfor %}
+        {% endif %}
+    {% endwith %}
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
-            var toastList = toastElList.map(function (toastEl) {
-                // autohide: true 表示自动隐藏
-                // delay: 3000 表示 3 秒后开始隐藏
-                return new bootstrap.Toast(toastEl, { 
-                    autohide: true, 
-                    delay: 3000 
-                });
+        // 搜索框交互
+        const searchInput = document.getElementById('search-input');
+        const tagDropdown = document.getElementById('tag-dropdown');
+        searchInput.onfocus = () => tagDropdown.classList.add('show');
+        document.onclick = (e) => {
+            if (!searchInput.contains(e.target) && !tagDropdown.contains(e.target)) {
+                tagDropdown.classList.remove('show');
+            }
+        };
+
+        // 鉴权拦截逻辑：使用 data-auth 避免红线报错
+        function checkAuth(e) {
+            const isAuth = document.body.getAttribute('data-auth') === 'true';
+            if (!isAuth) {
+                e.preventDefault();
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }
+        }
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 自动初始化并显示所有页面中的 Toast
+        var toastElList = [].slice.call(document.querySelectorAll('.toast'))
+        var toastList = toastElList.map(function (toastEl) {
+            var toast = new bootstrap.Toast(toastEl, {
+                autohide: true,
+                delay: 4000 // 4秒后自动消失，不再堆叠
             });
-            // 循环显示每一个消息
-            toastList.forEach(toast => toast.show());
+            toast.show();
         });
+    });
     </script>
 </body>
 </html>

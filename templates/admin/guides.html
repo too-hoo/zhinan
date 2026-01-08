@@ -34,7 +34,7 @@
                     <td><span class="badge bg-light text-dark">{{ guide.category.name if guide.category else '未分类' }}</span></td>
                     <td class="small text-muted">{{ guide.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td class="text-end">
-                        <a href="{{ url_for('admin.admin_guides.add_guide', guide_id=guide.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                        <a href="{{ url_for('admin.admin_guides.edit_guide', guide_id=guide.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
                     </td>
                 </tr>
                 {% endfor %}

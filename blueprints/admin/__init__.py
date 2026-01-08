@@ -12,7 +12,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
             flash('您没有权限访问管理后台', 'danger')
-            return redirect(url_for('main.index'))
+            return redirect(url_for('content.index')) # 返回主页
         return f(*args, **kwargs)
     return decorated_function
 
@@ -22,6 +22,7 @@ from .codes import codes_bp
 from .guides import guides_bp
 from .materials import materials_bp
 from .taxonomy import taxonomy_bp
+from .feedback import feedback_bp
 
 # 3. 注册子蓝图，实现 URL 嵌套
 # 这样访问路径会自动变为 /admin/users, /admin/codes 等
@@ -30,6 +31,7 @@ admin_bp.register_blueprint(codes_bp)
 admin_bp.register_blueprint(guides_bp)
 admin_bp.register_blueprint(materials_bp)
 admin_bp.register_blueprint(taxonomy_bp)
+admin_bp.register_blueprint(feedback_bp)
 
 # 保留仪表盘主页路由
 @admin_bp.route('/')

@@ -5,17 +5,33 @@ from datetime import datetime, timezone
 from extensions import login_manager
 import uuid
 
+# 定义收藏中间表
+user_favorites = db.Table('user_favorites',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('guide_id', db.Integer, db.ForeignKey('guide_content.id'), primary_key=True)
+)
+
 # --- 1. 用户模型 (包含 CRUD 基础) ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    # 核心修改：手机号作为主登录凭证，必须唯一且不能为空
+    phone = db.Column(db.String(11), unique=True, nullable=False)
+    username = db.Column(db.String(80), unique=False, nullable=False)
     password_hash = db.Column(db.String(120), nullable=False)
+    # 扩展信息
+    email = db.Column(db.String(120), unique=True, nullable=True)
+    gender = db.Column(db.String(10), nullable=True) # 如：男、女、保密
+    identity = db.Column(db.String(50), nullable=True) # 如：学生、职场人
+
     is_paid = db.Column(db.Boolean, default=False) # 是否为付费用户
     is_admin = db.Column(db.Boolean, default=False) # 新增：标记是否为管理员
     # 时间追踪字段 使用 default=datetime.utcnow，系统会自动填充当前 UTC 时间
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     # PM 建议：记录最后登录时间，帮你判断用户活跃度
     last_login = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
+    favorite_guides = db.relationship('GuideContent', 
+                                      secondary=user_favorites, 
+                                      backref=db.backref('favorited_by', lazy='dynamic'))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -92,3 +108,18 @@ class GuideContent(db.Model):
 
     def __repr__(self):
         return f'<GuideContent {self.title}>'
+
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    # 反馈内容
+    content = db.Column(db.Text, nullable=False)
+    # 用户联系方式（可选，方便回访）
+    contact = db.Column(db.String(100), nullable=True)
+    # 反馈时间
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    # 关联用户
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    user = db.relationship('User', backref=db.backref('feedbacks', lazy=True))
+
+    # 状态：0-未处理，1-已采纳，2-已回复
+    status = db.Column(db.Integer, default=0)

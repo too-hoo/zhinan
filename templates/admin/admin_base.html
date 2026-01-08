@@ -30,7 +30,13 @@
                 class="list-group-item list-group-item-action border-0 py-3 mb-1 rounded-3 d-flex align-items-center {% if request.endpoint == 'admin.admin_taxonomy.list_taxonomy' %}active{% endif %}">
                     <span class="me-3">📑</span> 分类标签管理</a>
             </li>
-                
+            <li class="nav-item">
+                <a class="list-group-item list-group-item-action border-0 py-3 mb-1 rounded-3 d-flex align-items-center {% if request.endpoint == 'admin.admin_taxonomy.list_taxonomy' %}active{% endif %}"
+                href="{{ url_for('admin.admin_feedback.list_feedback') }}" class="list-group-item list-group-item-action border-0 py-3">
+                    <span class="me-3">💡 </span> 用户反馈管理</a>
+                </a>
+            </li>
+
         </ul>
         <hr class="bg-secondary">
         <a href="/" class="btn btn-sm btn-outline-light w-100 mt-2">返回前台</a>

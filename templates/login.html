@@ -1,30 +1,96 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <div class="card p-4">
-            <h3 class="text-center mb-4">用户登录</h3>
-            {% with messages = get_flashed_messages() %}
-              {% if messages %}
-                {% for message in messages %}
-                  <div class="alert alert-danger">{{ message }}</div>
-                {% endfor %}
-              {% endif %}
-            {% endwith %}
+<div class="login-page-wrapper d-flex align-items-center justify-content-center">
+    <div class="login-card shadow-lg border-0 bg-white">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <div class="brand-logo mb-2">🧠</div>
+                <h4 class="fw-bold">欢迎回来</h4>
+                <p class="text-muted small">让每一次探索都带给你内心的平静</p>
+            </div>
 
             <form method="POST">
                 <div class="mb-3">
-                    <label class="form-label">用户名</label>
-                    <input type="text" name="username" class="form-control" placeholder="请输入用户名" required>
+                    <label class="form-label small text-secondary fw-bold">手机号</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0 rounded-start-pill px-3">📱</span>
+                        <input type="text" name="phone" class="form-control bg-light border-0 rounded-end-pill px-3" 
+                               placeholder="请输入注册手机号" required>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">密码</label>
-                    <input type="password" name="password" class="form-control" placeholder="请输入密码" required>
+
+                <div class="mb-4">
+                    <label class="form-label small text-secondary fw-bold">密码</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0 rounded-start-pill px-3">🔒</span>
+                        <input type="password" name="password" class="form-control bg-light border-0 rounded-end-pill px-3" 
+                               placeholder="请输入登录密码" required>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">立即登录</button>
+
+                <button type="submit" class="btn btn-login-gradient w-100 py-2 fw-bold mb-3 shadow-sm">
+                    立即登录
+                </button>
             </form>
-            <p class="mt-3 text-center small">还没有账号？<a href="{{ url_for('auth.activate') }}">立即注册</a></p>
+
+            <div class="text-center">
+                <p class="mt-2 text-muted small">
+                    还没有账号？<a href="{{ url_for('auth.activate') }}" class="text-purple text-decoration-none fw-bold">立即加入我们</a>
+                </p>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* 1. 全屏渐变背景：营造宁静氛围 */
+    .login-page-wrapper {
+        min-height: 80vh;
+        /* 使用淡紫色与淡蓝色的渐变，模仿 image_4aef65.jpg 的通透感 */
+        background: radial-gradient(circle at top right, #f3e8ff, #e0f2fe);
+        border-radius: 24px;
+        margin: -20px 0; /* 抵消 container 默认间距 */
+    }
+
+    /* 2. 登录卡片美化 */
+    .login-card {
+        width: 100%;
+        max-width: 400px;
+        border-radius: 24px;
+        transition: transform 0.3s ease;
+    }
+
+    .brand-logo {
+        font-size: 2.5rem;
+        filter: drop-shadow(0 4px 6px rgba(111, 66, 193, 0.2));
+    }
+
+    /* 3. 输入框交互：取消硬边框 */
+    .form-control:focus {
+        background-color: #fff !important;
+        box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.1);
+    }
+
+    /* 4. 品牌紫色按钮 */
+    .btn-login-gradient {
+        background: linear-gradient(135deg, #6f42c1, #a158ff);
+        color: white;
+        border: none;
+        border-radius: 50px;
+    }
+
+    .btn-login-gradient:hover {
+        background: linear-gradient(135deg, #5a32a3, #6f42c1);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .text-purple { color: #6f42c1; }
+
+    .alert-soft-danger {
+        background-color: #fef2f2;
+        color: #dc2626;
+    }
+</style>
 {% endblock %}

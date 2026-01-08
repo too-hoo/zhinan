@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="feedback-wrapper d-flex align-items-center justify-content-center">
+    <div class="feedback-card shadow-lg border-0 bg-white p-5">
+        <div class="text-center mb-4">
+            <h4 class="fw-bold">💡 意见反馈</h4>
+            <p class="text-muted small">您的每一条建议，都是我们成长的指南针</p>
+        </div>
+
+        <form method="POST">
+            <div class="mb-4">
+                <label class="form-label small text-secondary fw-bold">反馈详情</label>
+                <textarea name="content" class="form-control bg-light border-0 rounded-4 p-3" 
+                          rows="5" placeholder="请详细描述您遇到的问题或建议..." required></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small text-secondary fw-bold">联系方式 (可选)</label>
+                <input type="text" name="contact" class="form-control bg-light border-0 rounded-pill px-3" 
+                       placeholder="留下邮箱或手机号，方便我们回复您">
+            </div>
+
+            <button type="submit" class="btn btn-purple btn-lg w-100 rounded-pill fw-bold">
+                提交反馈
+            </button>
+            <div class="text-center mt-3">
+                <a href="{{ url_for('main.profile') }}" class="text-muted small text-decoration-none">返回个人中心</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .feedback-wrapper {
+        min-height: 70vh;
+        background: radial-gradient(circle at top right, #f3e8ff, #f0f9ff);
+        border-radius: 24px;
+        margin: -20px 0;
+    }
+    .feedback-card {
+        width: 100%;
+        max-width: 500px;
+        border-radius: 24px;
+    }
+    .btn-purple {
+        background-color: #6f42c1;
+        color: white;
+    }
+    .btn-purple:hover {
+        background-color: #5a32a3;
+        color: white;
+    }
+</style>
+{% endblock %}

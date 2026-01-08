@@ -1,4 +1,4 @@
-# blueprints/content.py
+# blueprints/content.py 首页指南内容控制
 import re, markdown
 from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
@@ -43,7 +43,7 @@ def list_guides():
 
     # --- 核心修改：使用 paginate 代替 all() ---
     # per_page 设置为每页显示的条数，例如 6 条（配合瀑布流布局）
-    pagination = query.order_by(GuideContent.created_at.desc()).paginate(page=page, per_page=6)
+    pagination = query.order_by(GuideContent.created_at.desc()).paginate(page=page, per_page=10)
     guides = pagination.items  # 当前页的数据对象列表
 
     categories = Category.query.order_by(Category.sort_order.asc()).all()
@@ -61,36 +61,45 @@ def list_guides():
 @content_bp.route('/guide/<int:guide_id>')
 @login_required
 def show_guide(guide_id):
+    # 如果用户未登录，跳转并提醒
+    if not current_user.is_authenticated:
+        flash('🔑 这是一个深度指南，请登录后继续阅读', 'info')
+        return redirect(url_for('auth.login', next=request.path))
+
     guide = GuideContent.query.get_or_404(guide_id)
     
     # 权限检查（虽然 list 页面有拦截，但详情页入口也要守住）
     if not current_user.is_paid:
-        return render_template('no_permission.html')
+        return render_template('no_permission.html', guide=guide)
 
-    # 1. 阅读数自增
+    # 阅读数自增
     guide.view_count += 1
     db.session.commit()
 
-    # 2. 核心改进：处理正文中的私有链接
-    # 逻辑：查找 Markdown 中符合 OSS 域名的链接并生成签名
-    content = guide.content
-    
-    # 这是一个匹配 OSS 完整链接的正则
-    oss_pattern = rf"https://{oss_helper.bucket_name}\.{oss_helper.endpoint.replace('https://', '')}/[^\s\)\?]+"
+    # 1. 修复正则匹配 Bug：防止把引号 " 或括号 ) 匹配进 URL
+    domain = f"{oss_helper.bucket_name}.{oss_helper.endpoint.replace('https://', '').replace('http://', '')}"
+    # 修改点：在 [^...] 中增加了 \" 和 \'，确保匹配到引号就停止
+    oss_pattern = rf"https?://{re.escape(domain)}/[^\s\)\?\"']+"
     
     def sign_match(match):
         raw_url = match.group(0)
-        # 调用新写的签名方法
         return oss_helper.get_signed_url(raw_url)
 
-    # 动态替换所有匹配到的原始链接为签名链接
-    signed_content = re.sub(oss_pattern, sign_match, content)
+    # 先进行签名替换
+    signed_content = re.sub(oss_pattern, sign_match, guide.content)
 
-    # 3. 处理封面图签名（如果是私有的话）
+    # 2. 将 Markdown 转换为 HTML
+    # 增加 extensions 以支持表格、代码块等高级语法
+    html_content = markdown.markdown(signed_content, extensions=[
+        'fenced_code', 
+        'tables', 
+        'nl2br',  # 自动换行
+        'toc'     # 自动生成目录（可选）
+    ])
+
+    # 3. 处理封面签名
     signed_cover = oss_helper.get_signed_url(guide.cover_image_url)
-    
-    # 3. 获取相关推荐：同分类下的其他 3 篇文章
-    # 逻辑：过滤掉当前文章 ID，按随机排序取 3 个
+
     related_guides = GuideContent.query.filter(
         GuideContent.category_id == guide.category_id,
         GuideContent.id != guide_id,
@@ -99,7 +108,7 @@ def show_guide(guide_id):
     
     return render_template('content/detail.html', 
                             guide=guide, 
-                            content=signed_content, # 传出带有签名的正文
+                            content=html_content, # 传出转换后的 HTML
                             cover=signed_cover,
                             related_guides=related_guides)
 
@@ -110,3 +119,26 @@ def like_guide(guide_id):
     guide.like_count += 1
     db.session.commit()
     return {"status": "success", "new_count": guide.like_count} # 返回 JSON 给前端
+
+@content_bp.route('/favorite/<int:guide_id>', methods=['POST'])
+@login_required
+def toggle_favorite(guide_id):
+    guide = GuideContent.query.get_or_404(guide_id)
+    
+    # 检查当前用户是否已经收藏过
+    if guide in current_user.favorite_guides:
+        current_user.favorite_guides.remove(guide)
+        status = "unfavorited"
+    else:
+        current_user.favorite_guides.append(guide)
+        status = "favorited"
+    
+    db.session.commit()
+    return {"status": "success", "action": status}
+
+@content_bp.route('/my/favorites')
+@login_required
+def my_favorites():
+    # 获取当前用户的所有收藏，并按时间排序（如果需要更复杂的排序需增加中间表字段）
+    guides = current_user.favorite_guides
+    return render_template('content/list.html', guides=guides, is_favorite_page=True)

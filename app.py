@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+from flask_migrate import Migrate
 from extensions import db, login_manager
 from models import User
 # 导入蓝图
@@ -9,6 +10,10 @@ from blueprints.admin import admin_bp
 from blueprints.content import content_bp
 
 app = Flask(__name__)
+
+# 必须有这一行，否则 flask 命令里就不会出现 db 子命令
+migrate = Migrate(app, db, render_as_batch=True)
+
 # 基础配置
 app.config['SECRET_KEY'] = 'zhinan-secret-key-123'
 # 这里的逻辑是：如果系统里有 DATABASE_URL 这个环境变量，就用它（连接云库）
@@ -33,6 +38,15 @@ app.register_blueprint(main_bp)
 app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(content_bp)
 
+@app.context_processor
+def inject_global_data():
+    """将分类和标签注入所有模版，确保全局搜索框可用"""
+    from models import Category, Tag
+    return {
+        'all_categories': Category.query.all(),
+        'all_tags': Tag.query.limit(10).all() # 仅展示热门前 10 个
+    }
+    
 # --- 启动前初始化数据库 ---
 if __name__ == '__main__':
     with app.app_context():
