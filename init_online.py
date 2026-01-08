@@ -1,21 +1,30 @@
-from extensions import db
-from models import User, ActivationCode
-import uuid
+# init_online.py
+from app import app, db, User
 from werkzeug.security import generate_password_hash
 
-# 1. 创建管理员 (使用你的真实手机号)
-admin = User(
-    phone='18888888888', 
-    username='toohoo', 
-    password_hash=generate_password_hash('你的强密码'), 
-    is_admin=True, 
-    is_paid=True
-)
-db.session.add(admin)
+def run_init():
+    # 核心：必须使用 with 语句进入应用上下文
+    with app.app_context():
+        print("正在尝试创建管理员账号...")
+        
+        # 检查是否已存在
+        admin = User.query.filter_by(username='toohoo').first()
+        
+        if not admin:
+            # 创建管理员对象
+            admin = User(
+                phone='18888888888', # 别忘了填上手机号，否则会报 Null 错误
+                username='toohoo',
+                password_hash=generate_password_hash('你的密码'),
+                is_admin=True,
+                is_paid=True
+            )
+            # 这行操作现在在上下文保护下，不会再报错
+            db.session.add(admin)
+            db.session.commit()
+            print("成功：管理员账号已创建！")
+        else:
+            print("提示：管理员账号已存在，无需重复创建。")
 
-# 2. 生成 10 个激活码
-for _ in range(10):
-    db.session.add(ActivationCode(code=str(uuid.uuid4())[:8].upper()))
-
-db.session.commit()
-exit()
+if __name__ == "__main__":
+    run_init()
