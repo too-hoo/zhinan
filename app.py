@@ -2,7 +2,7 @@ import os
 from flask import Flask
 from flask_migrate import Migrate
 from extensions import db, login_manager
-from models import User
+from models import User, Category, GuideContent, Feedback, ActivationCode # 确保所有模型都被导入过
 # 导入蓝图
 from blueprints.auth import auth_bp
 from blueprints.main import main_bp
